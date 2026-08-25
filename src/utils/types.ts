@@ -26,6 +26,22 @@ export type TOrder = {
   ingredients: string[];
 };
 
+export type TOrderModalData = {
+  _id: string;
+  status: string;
+  name: string;
+  owner: {
+    name: string;
+    email: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  number: number;
+  price: number;
+};
+
 export type TOrdersData = {
   orders: TOrder[];
   total: number;

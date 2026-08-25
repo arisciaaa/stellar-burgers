@@ -1,8 +1,13 @@
 import { useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import {
+  Routes,
+  Route,
+  useLocation,
+  useNavigate,
+  useParams
+} from 'react-router-dom';
 import { ConstructorPage } from '@pages';
 import styles from './app.module.css';
-import { useNavigate } from 'react-router-dom';
 
 import {
   AppHeader,
@@ -13,11 +18,10 @@ import {
   UnAuthRoute
 } from '@components';
 
-import { Preloader } from '@ui';
-
 import { getIngredientsThunk } from '../../services/slices/ingredientsSlice';
-import { getUserThunk } from '../../services/slices/userSlice';
-import { useDispatch, useSelector } from '../../services/store';
+import { getUserThunk, setAuthChecked } from '../../services/slices/userSlice';
+import { useDispatch } from '../../services/store';
+import { getCookie } from '../../utils/cookie';
 
 import {
   Feed,
@@ -30,31 +34,47 @@ import {
   NotFound404
 } from '@pages';
 
+const OrderModal = () => {
+  const navigate = useNavigate();
+  const { number } = useParams();
+
+  return (
+    <Modal
+      title={`#${String(number).padStart(6, '0')}`}
+      onClose={() => navigate(-1)}
+    >
+      <OrderInfo />
+    </Modal>
+  );
+};
+
 const App = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const ingredients = useSelector((state) => state.ingredients.ingredients);
-  const isIngredientsLoading = useSelector(
-    (state) => state.ingredients.isLoading
-  );
-  const error = useSelector((state) => state.ingredients.error);
-  const isAuthChecked = useSelector((state) => state.user.isAuthChecked);
+  const backgroundLocation = location.state?.background;
 
   useEffect(() => {
     dispatch(getIngredientsThunk());
   }, [dispatch]);
 
   useEffect(() => {
-    dispatch(getUserThunk());
+    if (getCookie('accessToken')) {
+      dispatch(getUserThunk());
+    } else {
+      dispatch(setAuthChecked(true));
+    }
   }, [dispatch]);
 
   return (
     <div className={styles.app}>
       <AppHeader />
-      <Routes>
+
+      <Routes location={backgroundLocation || location}>
         <Route path='/' element={<ConstructorPage />} />
         <Route path='/feed' element={<Feed />} />
+
         <Route
           path='/login'
           element={
@@ -90,6 +110,7 @@ const App = () => {
             </UnAuthRoute>
           }
         />
+
         <Route
           path='/profile'
           element={
@@ -107,36 +128,33 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        <Route
-          path='/profile/orders/:number'
-          element={
-            <ProtectedRoute>
-              <Modal title='' onClose={() => navigate(-1)}>
-                <OrderInfo />
-              </Modal>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path='/feed/:number'
-          element={
-            <Modal title='' onClose={() => navigate(-1)}>
-              <OrderInfo />
-            </Modal>
-          }
-        />
-
-        <Route
-          path='/ingredients/:id'
-          element={
-            <Modal title='' onClose={() => navigate(-1)}>
-              <IngredientDetails />
-            </Modal>
-          }
-        />
 
         <Route path='*' element={<NotFound404 />} />
       </Routes>
+
+      {backgroundLocation && (
+        <Routes>
+          <Route
+            path='/ingredients/:id'
+            element={
+              <Modal title='Детали ингредиента' onClose={() => navigate(-1)}>
+                <IngredientDetails />
+              </Modal>
+            }
+          />
+
+          <Route path='/feed/:number' element={<OrderModal />} />
+
+          <Route
+            path='/profile/orders/:number'
+            element={
+              <ProtectedRoute>
+                <OrderModal />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      )}
     </div>
   );
 };

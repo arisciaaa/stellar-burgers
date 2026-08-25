@@ -1,20 +1,4 @@
-import { TConstructorIngredient } from '@utils-types';
-
-type TOrderModalData = {
-  _id: string;
-  status: string;
-  name: string;
-  owner: {
-    name: string;
-    email: string;
-    createdAt: string;
-    updatedAt: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-  number: number;
-  price: number;
-};
+import { TConstructorIngredient, TOrderModalData } from '@utils-types';
 
 export type BurgerConstructorUIProps = {
   constructorItems: {
