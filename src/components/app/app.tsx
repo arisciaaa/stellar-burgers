@@ -129,6 +129,19 @@ const App = () => {
           }
         />
 
+        <Route path='/ingredients/:id' element={<IngredientDetails />} />
+
+        <Route path='/feed/:number' element={<OrderInfo />} />
+
+        <Route
+          path='/profile/orders/:number'
+          element={
+            <ProtectedRoute>
+              <OrderInfo />
+            </ProtectedRoute>
+          }
+        />
+
         <Route path='*' element={<NotFound404 />} />
       </Routes>
 
