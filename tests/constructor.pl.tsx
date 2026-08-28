@@ -92,5 +92,84 @@ test.describe('Конструктор бургера', () => {
     await expect(page.getByText('Детали ингредиента')).not.toBeVisible();
   });
 
+  test('Создание заказа', async ({ page }) => {
+    await page.routeFromHAR('./tests/hars/ingredients.har', {
+      url: '**/ingredients',
+      update: false
+    });
 
+    await page.route('**/api/auth/user', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          user: {
+            email: 'sofia.stellar.82617@example.com',
+            name: 'Sofia'
+          }
+        })
+      });
+    });
+
+    await page.route('**/api/orders', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          order: {
+            _id: 'test-order',
+            status: 'done',
+            name: 'Флюоресцентный бургер',
+            number: 109386,
+            createdAt: '2026-08-28T00:00:00.000Z',
+            updatedAt: '2026-08-28T00:00:00.000Z',
+            price: 1000,
+            owner: {
+              name: 'Sofia',
+              email: 'sofia.stellar.82617@example.com',
+              createdAt: '2026-08-28T00:00:00.000Z',
+              updatedAt: '2026-08-28T00:00:00.000Z'
+            }
+          },
+          name: 'Флюоресцентный бургер'
+        })
+      });
+    });
+
+    await page.goto('/');
+
+    await page.evaluate(() => {
+      localStorage.setItem('refreshToken', 'fake-refresh-token');
+      document.cookie = 'accessToken=fake-access-token; path=/';
+    });
+
+    await page.reload();
+
+    const bun = page
+      .locator('li')
+      .filter({ hasText: 'Флюоресцентная булка R2-D3' });
+
+    await bun.getByRole('button', { name: 'Добавить' }).click();
+
+    const filling = page
+      .locator('li')
+      .filter({ hasText: 'Биокотлета из марсианской Магнолии' });
+
+    await filling.getByRole('button', { name: 'Добавить' }).click();
+
+    await page.getByRole('button', { name: 'Оформить заказ' }).click();
+
+    await expect(page.getByText('идентификатор заказа')).toBeVisible();
+    await expect(page.getByText('109386')).toBeVisible();
+
+    await expect(
+      page.getByText('Флюоресцентная булка R2-D3 (верх)')
+    ).not.toBeVisible();
+
+    await page.locator('#modals').getByRole('button').click();
+
+    await expect(page.getByText('идентификатор заказа')).not.toBeVisible();
+  });
 });
