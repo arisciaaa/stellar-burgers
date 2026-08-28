@@ -15,8 +15,16 @@ test.describe('Конструктор бургера', () => {
 
     await ingredient.getByRole('button', { name: 'Добавить' }).click();
 
+    const constructor = page.locator('section').filter({
+      hasText: 'Оформить заказ'
+    });
+
     await expect(
-      page.getByText('Флюоресцентная булка R2-D3 (верх)')
+      constructor.getByText('Флюоресцентная булка R2-D3 (верх)')
+    ).toBeVisible();
+
+    await expect(
+      constructor.getByText('Флюоресцентная булка R2-D3 (низ)')
     ).toBeVisible();
   });
 
@@ -30,9 +38,11 @@ test.describe('Конструктор бургера', () => {
 
     await page.getByText('Флюоресцентная булка R2-D3').first().click();
 
-    await expect(page.getByText('Детали ингредиента')).toBeVisible();
+    const modal = page.locator('#modals');
+
+    await expect(modal.getByText('Детали ингредиента')).toBeVisible();
     await expect(
-      page.getByRole('heading', { name: 'Флюоресцентная булка R2-D3' })
+      modal.getByRole('heading', { name: 'Флюоресцентная булка R2-D3' })
     ).toBeVisible();
   });
 
@@ -98,54 +108,33 @@ test.describe('Конструктор бургера', () => {
       update: false
     });
 
-    await page.route('**/api/auth/user', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          user: {
-            email: 'sofia.stellar.82617@example.com',
-            name: 'Sofia'
-          }
-        })
-      });
+    await page.routeFromHAR('./tests/hars/user.har', {
+      url: '**/api/auth/**',
+      update: false
     });
 
-    await page.route('**/api/orders', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          order: {
-            _id: 'test-order',
-            status: 'done',
-            name: 'Флюоресцентный бургер',
-            number: 109386,
-            createdAt: '2026-08-28T00:00:00.000Z',
-            updatedAt: '2026-08-28T00:00:00.000Z',
-            price: 1000,
-            owner: {
-              name: 'Sofia',
-              email: 'sofia.stellar.82617@example.com',
-              createdAt: '2026-08-28T00:00:00.000Z',
-              updatedAt: '2026-08-28T00:00:00.000Z'
-            }
-          },
-          name: 'Флюоресцентный бургер'
-        })
-      });
+    await page.routeFromHAR('./tests/hars/order.har', {
+      url: '**/api/orders',
+      update: false
     });
 
     await page.goto('/');
 
-    await page.evaluate(() => {
-      localStorage.setItem('refreshToken', 'fake-refresh-token');
-      document.cookie = 'accessToken=fake-access-token; path=/';
-    });
+    await page.getByRole('link', { name: 'Личный кабинет' }).click();
 
-    await page.reload();
+    await page.locator('input[name="email"]').fill(
+      'sofia.stellar.82617@example.com'
+    );
+
+    await page.locator('input[name="password"]').fill('Stellar12345!');
+
+    await page.getByRole('button', { name: 'Войти' }).click();
+
+    await page.goto('/');
+
+    await expect(
+      page.getByRole('button', { name: 'Оформить заказ' })
+    ).toBeVisible();
 
     const bun = page
       .locator('li')
@@ -159,17 +148,50 @@ test.describe('Конструктор бургера', () => {
 
     await filling.getByRole('button', { name: 'Добавить' }).click();
 
-    await page.getByRole('button', { name: 'Оформить заказ' }).click();
-
-    await expect(page.getByText('идентификатор заказа')).toBeVisible();
-    await expect(page.getByText('109386')).toBeVisible();
+    const constructor = page.locator('section').filter({
+      hasText: 'Оформить заказ'
+    });
 
     await expect(
-      page.getByText('Флюоресцентная булка R2-D3 (верх)')
+      constructor.getByText('Флюоресцентная булка R2-D3 (верх)')
+    ).toBeVisible();
+
+    await expect(
+      constructor.getByText('Флюоресцентная булка R2-D3 (низ)')
+    ).toBeVisible();
+
+    await expect(
+      constructor.getByText('Биокотлета из марсианской Магнолии')
+    ).toBeVisible();
+
+    await page.getByRole('button', { name: 'Оформить заказ' }).click();
+
+    const orderModal = page.locator('#modals');
+    
+    await expect(
+      orderModal.getByText('идентификатор заказа')
+    ).toBeVisible();
+
+    await expect(
+      orderModal.getByText(/^\d+$/)
+    ).toBeVisible();
+
+    await expect(
+      constructor.getByText('Флюоресцентная булка R2-D3 (верх)')
     ).not.toBeVisible();
 
-    await page.locator('#modals').getByRole('button').click();
+    await expect(
+      constructor.getByText('Флюоресцентная булка R2-D3 (низ)')
+    ).not.toBeVisible();
 
-    await expect(page.getByText('идентификатор заказа')).not.toBeVisible();
+    await expect(
+      constructor.getByText('Биокотлета из марсианской Магнолии')
+    ).not.toBeVisible();
+
+    await orderModal.getByRole('button').click();
+
+    await expect(
+      orderModal.getByText('идентификатор заказа')
+    ).not.toBeVisible();
   });
 });
